@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+<meta charset="UTF-8"> 
+<title>Edit table with modal dialog (bootstrap edition)</title> 
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js">
+</script> 
+
+<style>
+.hdr { margin-bottom: 0px; }
+.cssAlerts > tbody { cursor: pointer; }
+.cssAlerts { table-layout: fixed; }
+.cssAlerts > thead > tr th:nth-child(1), .cssAlerts > tbody > tr td:nth-child(1) { display: none; } /* Id */
+.cssAlerts > thead > tr th:nth-child(2), .cssAlerts > tbody > tr td:nth-child(2) { width: 20ch; white-space: nowrap; } /* itemName */
+.cssAlerts > thead > tr th:nth-child(3), .cssAlerts > tbody > tr td:nth-child(3) { width: 16ch; white-space: nowrap; }
+.cssAlerts > thead > tr th:nth-child(4), .cssAlerts > tbody > tr td:nth-child(4) { width: 16ch; white-space: nowrap; }
+.cssAlerts > thead > tr th:nth-child(5), .cssAlerts > tbody > tr td:nth-child(5) { width: 11ch; white-space: nowrap; }
+.cssAlerts > thead > tr th:nth-child(6), .cssAlerts > tbody > tr td:nth-child(6) { max-width: calc(100vw - 68ch)!important; width: calc(100vw - 68ch); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cssAlerts > thead > tr th:nth-child(7), .cssAlerts > tbody > tr td:nth-child(7) { display: none; } /* comment */
+
+.sev_critical > td { color: red; font-weight: bold; }
+.sev_high > td { color: #CC00CC; font-weight: bold; }
+.sev_medium > td { color: blue; font-weight: bold; }
+.sev_low > td { color: black; font-weight: bold; }
+.sev_performance > td { color: orange; font-weight: bold; }
+.sev_closed > td { color: gray; font-weight: normal; }
+
+/*
+** Wide modal for the edit form.
+*/
+@media screen and (min-width: 768px) {
+	.modal-wide {
+		width: 70%; /* either % (e.g. 60%) or px (400px) */
+	}
+}
+/*
+** Used for the edit form:
+*/
+.leftdiv { float: left; }
+.rightdiv { float: right; white-space: nowrap; }
+button em {
+	text-decoration:underline;
+	font-style: normal;
+}
+input:disabled, select:disabled, textarea:disabled {cursor: not-allowed !important; }
+
+.control-label { white-space: nowrap; }
+/*
+** Minimized "Sample notes"
+*/
+.minimized {
+	background-color: white;
+	border: 1px solid silver;
+	border-radius: 8px;
+	box-shadow: 3px 3px 5px #535353;
+	width: auto;
+	position: fixed;
+	bottom: 10px;
+	padding: 2px 10px 2px 10px;
+	cursor: pointer;
+}
+/*
+** When printing page with open dialog, only print the dialog.
+*/
+@media print {
+	@page { size: A4 landscape; }
+
+	.noprint { display: none; }
+
+	.modal-dialog {
+		position: absolute;
+		padding: 0;
+		margin: 0;
+		left: 0;
+		top: 0;
+		width: 100%;
+		font-size: 80%;
+	}
+}
+</style>
+<script>
+var severityList = 
+	[ {value: "0", text: "Critical", class: "sev_critical"}
+	, {value: "1", text: "High", class: "sev_high"}
+	, {value: "2", text: "Medium", class: "sev_medium"}
+	, {value: "3", text: "Low", class: "sev_low"}
+	, {value: "4", text: "Performance", class: "sev_performance"}
+	, {value: "5", text: "Closed", class: "sev_closed"}
+	];
+var gvCurrentRow = null;
+
+function moveNext() {
+	var cssAlerts = $("#tblAlerts").get(0);
+	var rowIndex = gvCurrentRow.rowIndex + 1;
+	if (rowIndex < cssAlerts.rows.length) {
+		row2form( cssAlerts.rows[rowIndex] );
+	}
+}
+
+function movePrev() {
+	var cssAlerts = $("#tblAlerts").get(0);
+	var rowIndex = gvCurrentRow.rowIndex - 1;
+	if (rowIndex > 0) {
+		row2form( cssAlerts.rows[rowIndex] );
+	}
+}
+
+function cancelEdit() {
+	if (gvCurrentRow) {
+		gvCurrentRow.style.backgroundColor = "";
+	}
+}
+
+function nl2br(pString) {
+	return pString.replace(/\n|\r\n|\r/g, '<br>');
+}
+
+function br2nl(pString) {
+	return pString.replace(new RegExp('<br>', 'g'), "\n");
+}
+
+function row2form( pRow ) {
+	cancelEdit();
+	gvCurrentRow = pRow;
+	$('#alertId').val( pRow.cells[0].innerText );
+	$('#itemName').val( pRow.cells[1].innerText );
+	$('#openTime').val( pRow.cells[2].innerText );
+	$('#closeTime').val( pRow.cells[3].innerText );
+	$('#severity').val( pRow.cells[4].innerText );
+	$('#message').val( pRow.cells[5].innerText );
+	$('#comment').val( br2nl(pRow.cells[6].innerHTML) );
+	gvCurrentRow.style.backgroundColor = "#FFE4C4";
+} // row2form
+
+function actionSave() {
+	var newClass = '';
+	if ($('#closeTime').val() === '') {
+		newClass = 'sev_' + $('#severity').val().toLowerCase();
+	} else {
+		newClass = 'sev_closed';
+	}
+	gvCurrentRow.classList.remove( 'sev_' + gvCurrentRow.cells[4].innerText.toLowerCase() );
+	gvCurrentRow.cells[0].innerText = $('#alertId').val();
+	gvCurrentRow.cells[1].innerText = $('#itemName').val();
+	gvCurrentRow.cells[2].innerText = $('#openTime').val();
+	gvCurrentRow.cells[3].innerText = $('#closeTime').val();
+	gvCurrentRow.cells[4].innerText = $('#severity').val();
+	gvCurrentRow.cells[5].innerText = $('#message').val();
+	gvCurrentRow.cells[6].innerHTML = nl2br($('#comment').val());
+	
+	gvCurrentRow.classList.add( newClass );
+}
+
+function showNotes() {
+	$("#notesMini").css('display', 'none');
+	$("#notesModal").modal('show');
+}
+
+function hideNotes() {
+	$("#notesMini").css('display', 'block');
+	$("#notesModal").modal('hide');
+}
+
+function initialize() {
+	// When the user clicks a table row, then open the modal 
+	$('#tblAlerts tbody').on('click', 'tr', function(pEvent) {
+		var vRow = pEvent.target;
+		while (vRow.nodeName!='TR'){
+			vRow = vRow.parentNode;
+		}
+		row2form(vRow);
+		$('#editModal').modal('show');
+	});
+
+	// When the user clicks on <span> (x), close the modal
+	$('#editClose').on('click', function() {
+		cancelEdit();
+		$('#editModal').modal('hide');
+	});
+
+	// When the user clicks anywhere outside of the modal, close it
+	$('#editModal').on('click', function(event) {
+		if (event.target.id == 'editModal' ) {
+			cancelEdit();
+			$('#editModal').modal('hide');
+		}
+	});
+
+	// When the user clicks anywhere outside of the modal, close it
+	$('#notesModal').on('click', function(event) {
+		if (event.target.id == 'notesModal' ) {
+			hideNotes();
+		}
+	});
+
+	$('#editModal').modal();
+	$('#editModal').modal('hide');
+	$('#notesModal').modal();
+	$('#notesModal').modal('hide');
+
+	$('.modal').on('shown.bs.modal', function () {
+		$('#contents').addClass('noprint');
+	});
+
+	$('.modal').on('hidden.bs.modal', function () {
+		$('#contents').removeClass('noprint');
+	});
+}
+</script>
+</head>
+<body onload="initialize();">
+<div id="contents" class="container-fluid">
+
+<div id="pageBody">
+<h3 class="hdr">Editable table.</h3>
+<table id="tblAlerts" class="cssAlerts table-condensed table-bordered table-striped">
+<thead>
+<tr>
+<th>Id</th>
+<th>Item name</th>
+<th>Open time</th>
+<th>Close time</th>
+<th>Severity </th>
+<th>Message</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr class="sev_critical"><td>1001</td><td>wwwServer</td><td>2017-12-01 05:55</td><td></td><td>Critical</td><td>Short Message</td><td></td></tr>
+<tr class="sev_high"><td>1002</td><td>wwwServer</td><td>2017-12-01 05:55</td><td></td><td>High</td><td>Longer Message</td><td></td></tr>
+<tr class="sev_medium"><td>1003</td><td>wwwServer</td><td>2017-12-01 05:55</td><td></td><td>Medium</td><td>Longer Message</td><td></td></tr>
+<tr class="sev_low"><td>1004</td><td>wwwServer</td><td>2017-12-01 05:55</td><td></td><td>Low</td><td>Longer Message</td><td></td></tr>
+<tr class="sev_performance"><td>1005</td><td>wwwServer</td><td>2017-12-01 05:55</td><td></td><td>Performance</td><td>Longer Message - Longer Message - Longer Message - Longer Message - Longer Message - Longer Message - Longer Message - Longer Message - Longer Message</td><td>1<br>2<br>3<br>4</td></tr>
+<tr class="sev_closed"><td>1006</td><td>wwwServer</td><td>2017-12-01 05:55</td><td>2017-12-01 07:55</td><td>Critical</td><td>Longer Message</td><td>No longer relevant.</td></tr>
+</tbody>
+</table>
+Click on table to view details or edit a row.
+</div> <!-- #pageBody -->
+<div id="notesMini" class="minimized noprint" onclick="showNotes();">
+Sample notes
+</div>
+</div> <!-- #contents -->
+
+<!-- The Edit modal -->
+<div id="editModal" class="modal fade" role="dialog">
+  <div class="modal-dialog modal-wide" role="document">
+  <div class="modal-content">
+	<div class="modal-header">
+	<button id="editClose" type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	<h4 class="modal-title">Alert details</h4>
+	</div>
+	<div class="modal-body">
+	<form class="form-horizontal">
+	<div class="row">
+		<div class="col-sm-2 control-label"><label for="alertId">Alert id:</label></div>
+		<div class="col-sm-10"><input id="alertId" type=text disabled size="30" value="x"></div>
+	</div>
+	<div class="row">
+		<div class="col-sm-2 control-label"><label for="itemName">Item name:</label></div>
+		<div class="col-sm-10"><input id="itemName" type=text disabled size="30" value="x"></div>
+	</div>
+	<div class="row">
+		<div class="col-sm-2 control-label"><label for="openTime">Open time:</label></div>
+		<div class="col-sm-10"><input id="openTime" type=text disabled size="16" value="x"></div>
+	</div>
+	<div class="row">
+		<div class="col-sm-2 control-label"><label for="closeTime">Close time:</label></div>
+		<div class="col-sm-10"><input id="closeTime" type=text disabled size="16" value="x"></div>
+	</div>
+	<div class="row">
+		<div class="col-sm-2 control-label"><label for="severity">Severity:</label></div>
+		<div class="col-sm-10"><select id="severity">
+		<option value="Critical">Critical</option>
+		<option value="High">High</option>
+		<option value="Medium">Medium</option>
+		<option value="Low">Low</option>
+		<option value="Performance">Performance</option>
+		</select></div>
+	</div>
+	<div class="row">
+		<div class="col-sm-2 control-label"><label for="message">Message:</label></div>
+		<div class="col-sm-10"><input id="message" type=text size="100" value="x" style="width: 99%;"></div>
+	</div>
+	<div class="row">
+		<div class="col-sm-2 control-label"><label for="comment">Comment:</label></div>
+		<div class="col-sm-10"><textarea id="comment" rows="4" cols="100" style="width: 99%;">x</textarea></div>
+	</div>
+	</div> <!-- modal-body  -->
+	<div class="modal-footer">
+	<div class="leftdiv">
+	<button type="button" class="btn btn-primary" onclick="actionSave();" accesskey="s"><em>S</em>ave</button>
+	</div>
+	<div class="rightdiv">
+	<button type="button" class="btn btn-default" onclick="movePrev();" disabled>&larr;</button>&Tab;
+	<button type="button" class="btn btn-default" onclick="moveNext();">&rarr;</button>&Tab;
+	<button type="button" class="btn btn-default" onclick="movePrev();">&blacktriangleleft;</button>&Tab;
+	<button type="button" class="btn btn-default" onclick="moveNext();">&blacktriangleright;</button>
+	</div> <!-- rightdiv -->
+	</div> <!-- modal-footer -->
+	</form>
+  </div> <!-- modal-content -->
+  </div> <!-- modal-dialog -->
+</div> <!-- The Edit modal -->
+
+
+<!-- The Notes modal -->
+<div id="notesModal" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+  <div class="modal-content">
+	<div class="modal-header">
+	<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	<h4 class="modal-title">Sample notes</h4>
+	</div>
+	<div class="modal-body">
+This is a sample of editing the contents of a table using a modal popup.<br>
+This sample has been created using jQuery and Bootstrap.<br>
+<br>
+The "tblAlerts" table has been formatted with "table-layout: fixed" and fixed column width.<br> 
+The "message" column will truncate contents instead of breaking into multiple lines.<br>
+The table has two hidden columns - "Id" and  "Comment". The "Comment" column containt multi-line 
+data, and the the dialog transforms newline characters to/from &lt;br&gt; tags when the the data is
+copied between the table and the form.<br>
+<br>
+Clicking on one of the table rows will invoke the details form.<br>
+	</div> <!-- modal-body -->
+	<div class="modal-footer">
+	</div> <!-- modal-footer -->
+  </div> <!-- modal-content -->
+  </div> <!-- modal-dialog -->
+</div> <!-- The Notes modal -->
+
+</body>
+</html>
