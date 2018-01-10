@@ -2,22 +2,21 @@
 <html lang="en">
 
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"> 
+<title>Edit table with modal dialog (js edition)</title> 
 <style>
 body {height: 100%}
+body { font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 14px;}
+.cssAlerts { font-size: 14px;}
 .cssAlerts { width: 100%; border-spacing: 0; border-collapse: collapse; border: 3px solid silver; }
-/* .cssAlerts { font-family: "Verdana"; font-size: 12px;} */
-.cssAlerts { font-family: "Arial"; font-size: 13px;}
-.cssAlerts > tbody { cursor: pointer }
+.cssAlerts > tbody { cursor: pointer; }
 .cssAlerts > thead > tr > th {text-align: left; background-color: silver; }
 .cssAlerts > thead > tr > th { padding: 4px; border-bottom: 1px solid silver; border-right: 1px solid silver; }
 .cssAlerts > tbody > tr > td { padding: 4px; border-bottom: 1px solid silver; border-right: 1px solid silver; }
-/*
-.cssAlerts > thead > tr > th:last-child, .cssAlerts > tbody > tr > td:last-child { border-right: 1px solid silver; }
-.cssAlerts > tbody > tr:last-child > td { border-bottom: 1px solid silver; }
-.cssAlerts > tbody > tr:nth-child(even) { background-color: #CCFFFF ;}
-*/
-.cssAlerts { table-layout: auto}
+.cssAlerts > tbody > tr:nth-child(even) {background-color: #f9f9f9; }
+
+.cssAlerts { table-layout: auto; }
 .cssAlerts > thead > tr th:nth-child(1), .cssAlerts > tbody > tr td:nth-child(1) { display: none; } /* Id */
 .cssAlerts > thead > tr th:nth-child(2), .cssAlerts > tbody > tr td:nth-child(2) { width: 20ch; white-space: nowrap; } /* itemName */
 .cssAlerts > thead > tr th:nth-child(3), .cssAlerts > tbody > tr td:nth-child(3) { width: 16ch; white-space: nowrap; }
@@ -87,17 +86,11 @@ body {height: 100%}
 /*
 **
 */
-.tblForm { table-layout: fixed; width: 100%; }
+.tblForm { table-layout: fixed; width: 100%; border: none; }
 .tblForm > tbody > tr td:nth-child(1) { white-space: nowrap; vertical-align: top; width: 10em;} /* input label */
 /*
 **
 */
-
-.centerdiv {
-	margin: auto;
-	white-space: nowrap;
-	width: 12%;
-}
 .buttons {
 	font-size: 20px;
 	overflow: hidden; /* Height of floating DIVs doesnt affect parent div. without this height will be 0 */
@@ -124,7 +117,7 @@ button:active {
 	color: black;
 }
 button:disabled,
-button[disabled]{
+button[disabled] {
 	border: 1px solid #999999;
 	background-color: #cccccc;
 	color: white;
@@ -134,7 +127,7 @@ button em {
 	text-decoration:underline;
 	font-style: normal;
 }
-input:disabled, select:disabled, textarea:disabled {cursor: not-allowed; }
+input:disabled, select:disabled, textarea:disabled {cursor: not-allowed; color: black; }
 input:enabled, select:enabled, textarea:enabled {background-color: #B0E0E6; }
 .minimized {
 	background-color: white;
@@ -150,6 +143,24 @@ input:enabled, select:enabled, textarea:enabled {background-color: #B0E0E6; }
 .noteText {
 	font-size: 10pt;
 	font-family: Arial;
+}
+/*
+** When printing page with open dialog, only print the dialog.
+*/
+@media print {
+	@page { size: A4 landscape; }
+
+	.noprint { display: none; }
+
+	.modal-content {
+		position: absolute;
+		margin: 0;
+		left: 0;
+		top: 0;
+		bottom: auto;
+		width: calc(100% - 25px);
+		font-size: 80%;
+	}
 }
 </style>
 <script>
@@ -229,6 +240,7 @@ function actionSave() {
 function showNotes() {
 	document.getElementById("notesMini").style.display = "none";
 	document.getElementById("notesModal").style.display = "block";
+	document.getElementById("contents").classList.add('noprint');
 }
 
 function initialize() {
@@ -245,18 +257,21 @@ function initialize() {
 		}
 		row2form(vRow);
 		editModal.style.display = "block";
+		document.getElementById("contents").classList.add('noprint');
 	}
 
 	// When the user clicks on <span> (x), close the modal
 	document.getElementById("editClose").onclick = function() {
 		cancelEdit();
 		editModal.style.display = "none";
+		document.getElementById("contents").classList.remove('noprint');
 	}
 
 	// When the user clicks on <span> (x), close the modal
 	document.getElementById("notesClose").onclick = function() {
 		document.getElementById("notesMini").style.display = "block";
 		notesModal.style.display = "none";
+		document.getElementById("contents").classList.remove('noprint');
 	}
 
 	// When the user clicks anywhere outside of the modal, close it
@@ -264,6 +279,7 @@ function initialize() {
 		if (event.target == editModal) {
 			cancelEdit();
 			editModal.style.display = "none";
+			document.getElementById("contents").classList.remove('noprint');
 		}
 	}
 }
@@ -297,7 +313,7 @@ function initialize() {
 </table>
 Click on table to view details or edit a row.
 </div> <!-- #pageBody -->
-<div id="notesMini" class="minimized" onclick="showNotes();">
+<div id="notesMini" class="minimized noprint" onclick="showNotes();">
 Sample notes
 </div>
 </div> <!-- #contents -->
@@ -311,7 +327,7 @@ Sample notes
 	</div>
 	<hr>
 	<form>
-	<table class="tblForm" border="0">
+	<table class="tblForm">
 	<tbody>
 	<tr><td><label for="alertId">Alert id</label></td><td><input id="alertId" type=text disabled size="30" value="x"></td></tr>
 	<tr><td><label for="itemName">Item name</label></td><td><input id="itemName" type=text disabled size="30" value="x"></td></tr>
